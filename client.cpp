@@ -24,7 +24,7 @@
 using namespace std;
 
 float sumtime = 0;
-pthread_mutex_t lock;
+pthread_mutex_t locked;
 
 typedef struct thread_arg
 {
@@ -68,7 +68,7 @@ void *sendRequest(void *arg) //int argc, char *argv[])
     if ((rv = getaddrinfo(argv[1], PORT, &hints, &servinfo)) != 0)
     {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return;
+        return NULL;
     }
     clock_t t1, t2;
     t1 = clock();
@@ -95,7 +95,7 @@ void *sendRequest(void *arg) //int argc, char *argv[])
     if (p == NULL)
     {
         fprintf(stderr, "client: failed to connect\n");
-        return;
+        return NULL;
     }
 
     inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
@@ -112,13 +112,14 @@ void *sendRequest(void *arg) //int argc, char *argv[])
     float diff((float)t2 - (float)t1);
     float seconds = diff / CLOCKS_PER_SEC;
 
-    pthread_mutex_lock(&lock);
+    pthread_mutex_lock(&locked);
     sumtime += seconds;
-    pthread_mutex_unlock(&lock);
+    pthread_mutex_unlock(&locked);
 
     buf[numbytes] = '\0';
 
     close(sockfd);
+    return NULL;
 }
 
 int main(int argc, char *argv[])
@@ -127,7 +128,7 @@ int main(int argc, char *argv[])
     cout << "respondtime" << endl;
 
     // Call the function, here sort()
-    for (int o = 165; o <= 1000; o++)
+    for (int o = 1; o <= 1000; o++)
     {
         pthread_t th[o];
         sumtime = 0;
@@ -136,12 +137,12 @@ int main(int argc, char *argv[])
             thread_arg *arg = new thread_arg();
             arg->argc = argc;
             arg->argv = argv;
-            pthread_create(&th[i], NULL, sendRequest, arg);
+            sendRequest(arg);
         }
-        for (int p = 0; p < o; o++)
-        {
-            pthread_join(th[p], NULL);
-        }
+        /*for (int p = 0; p < o; o++)
+            pthread_join(th[p], NULL);*/
+        //pthread_exit(NULL);
+
         cout << sumtime / o << endl;
     }
 
